@@ -21,6 +21,4 @@ assert (a + neg_a).is_zero()
 # Serialisation
 compressed_bytes = scalar.to_bytes()
 deserialised_scalar = Scalar.from_bytes(compressed_bytes)
-deserialised_scalar_unchecked = Scalar.from_bytes_unchecked(compressed_bytes)
 assert scalar == deserialised_scalar
-assert scalar == deserialised_scalar_unchecked
