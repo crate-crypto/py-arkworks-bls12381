@@ -1,9 +1,9 @@
 use ark_bls12_381::{G1Affine, G2Affine};
-use ark_ec::pairing::Pairing;
-use ark_ec::AffineRepr;
+use ark_ec::pairing::{Pairing, PairingOutput};
+use ark_ec::{AffineRepr, Group};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_traits::identities::Zero;
-use pyo3::{pyclass, pymethods, PyErr, PyResult};
+use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult};
 
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
@@ -39,6 +39,15 @@ impl G1Point {
     }
     fn __str__(&self) -> PyResult<String> {
         return Ok(hex::encode(self.to_compressed_bytes()?));
+    }
+    fn __richcmp__(&self, other: G1Point, op: pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyclass::CompareOp::Eq => Ok(self.0 == other.0),
+            pyclass::CompareOp::Ne => Ok(self.0 != other.0),
+            _ => Err(exceptions::PyValueError::new_err(
+                "comparison operator not implemented".to_owned(),
+            )),
+        }
     }
 
     fn to_compressed_bytes(&self) -> PyResult<[u8; G1_COMPRESSED_SIZE]> {
@@ -96,6 +105,15 @@ impl G2Point {
     fn __str__(&self) -> PyResult<String> {
         return Ok(hex::encode(self.to_compressed_bytes()?));
     }
+    fn __richcmp__(&self, other: G2Point, op: pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyclass::CompareOp::Eq => Ok(self.0 == other.0),
+            pyclass::CompareOp::Ne => Ok(self.0 != other.0),
+            _ => Err(exceptions::PyValueError::new_err(
+                "comparison operator not implemented".to_owned(),
+            )),
+        }
+    }
 
     fn to_compressed_bytes(&self) -> PyResult<[u8; G2_COMPRESSED_SIZE]> {
         let mut bytes = [0u8; G2_COMPRESSED_SIZE];
@@ -148,6 +166,23 @@ impl Scalar {
     fn __str__(&self) -> PyResult<String> {
         return Ok(hex::encode(self.to_bytes()?));
     }
+    fn __richcmp__(&self, other: Scalar, op: pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyclass::CompareOp::Eq => Ok(self.0 == other.0),
+            pyclass::CompareOp::Ne => Ok(self.0 != other.0),
+            _ => Err(exceptions::PyValueError::new_err(
+                "comparison operator not implemented".to_owned(),
+            )),
+        }
+    }
+
+    fn square(&self) -> Scalar {
+        use ark_ff::fields::Field;
+        Scalar(self.0.square())
+    }
+    fn is_zero(&self) -> bool {
+        self.0.is_zero()
+    }
 
     fn to_bytes(&self) -> PyResult<[u8; SCALAR_SIZE]> {
         let mut bytes = [0u8; SCALAR_SIZE];
@@ -164,6 +199,7 @@ impl Scalar {
         Ok(Scalar(scalar))
     }
 
+    // TODO: Check if this is skipping the modulo check ie Fp(bytes) < modulus
     #[staticmethod]
     fn from_bytes_unchecked(bytes: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
         let scalar: ark_bls12_381::Fr =
@@ -179,12 +215,55 @@ pub struct GT(ark_bls12_381::Fq12);
 
 #[pymethods]
 impl GT {
+    #[new]
+    fn generator() -> GT {
+        GT(PairingOutput::<ark_bls12_381::Bls12_381>::generator().0)
+    }
+
     #[staticmethod]
-    fn pairing(g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> bool {
+    fn identity() -> GT {
+        GT(ark_bls12_381::Fq12::zero())
+    }
+
+    #[staticmethod]
+    fn multi_pairing(g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> GT {
         let g1_inner = g1s.into_iter().map(|g1| g1.0);
         let g2_inner = g2s.into_iter().map(|g2| g2.0);
+        GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0)
+    }
+    #[staticmethod]
+    fn pairing(g1: G1Point, g2: G2Point) -> GT {
+        GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0)
+    }
 
-        ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).is_zero()
+    // Overriding operators
+    fn __add__(&self, rhs: GT) -> GT {
+        GT(self.0 + rhs.0)
+    }
+    fn __sub__(&self, rhs: GT) -> GT {
+        GT(self.0 - rhs.0)
+    }
+    fn __mul__(&self, rhs: GT) -> GT {
+        GT(self.0 * rhs.0)
+    }
+    fn __neg__(&self) -> GT {
+        GT(-self.0)
+    }
+    fn __str__(&self) -> PyResult<String> {
+        let mut bytes = Vec::new();
+        self.0
+            .serialize_compressed(&mut bytes)
+            .map_err(serialisation_error_to_py_err)?;
+        Ok(hex::encode(bytes))
+    }
+    fn __richcmp__(&self, other: GT, op: pyclass::CompareOp) -> PyResult<bool> {
+        match op {
+            pyclass::CompareOp::Eq => Ok(self.0 == other.0),
+            pyclass::CompareOp::Ne => Ok(self.0 != other.0),
+            _ => Err(exceptions::PyValueError::new_err(
+                "comparison operator not implemented".to_owned(),
+            )),
+        }
     }
 }
 
