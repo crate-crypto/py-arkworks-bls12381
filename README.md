@@ -25,5 +25,5 @@ maturin develop
 - Now run a file in the examples folder
 
 ```
-python3 examples/g1.py
+python3 examples/point.py
 ```
