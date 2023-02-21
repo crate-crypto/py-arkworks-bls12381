@@ -1,6 +1,6 @@
-use ark_bls12_381::{G1Affine, G2Affine};
+use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
-use ark_ec::{AffineRepr, Group};
+use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult};
@@ -11,17 +11,17 @@ const SCALAR_SIZE: usize = 32;
 
 #[derive(Copy, Clone)]
 #[pyclass]
-pub struct G1Point(G1Affine);
+pub struct G1Point(G1Projective);
 
 #[pymethods]
 impl G1Point {
     #[new]
     fn generator() -> Self {
-        G1Point(G1Affine::generator())
+        G1Point(G1Projective::generator())
     }
     #[staticmethod]
     fn identity() -> Self {
-        G1Point(G1Affine::identity())
+        G1Point(G1Affine::identity().into())
     }
 
     // Overriding operators
@@ -61,32 +61,46 @@ impl G1Point {
 
     #[staticmethod]
     fn from_compressed_bytes(bytes: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
-        let g1_point: G1Affine = CanonicalDeserialize::deserialize_compressed(&bytes[..])
+        let g1_point: G1Projective = CanonicalDeserialize::deserialize_compressed(&bytes[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(G1Point(g1_point))
     }
 
     #[staticmethod]
     fn from_compressed_bytes_unchecked(bytes: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
-        let g1_point: G1Affine = CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
-            .map_err(serialisation_error_to_py_err)?;
+        let g1_point: G1Projective =
+            CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
+                .map_err(serialisation_error_to_py_err)?;
         Ok(G1Point(g1_point))
+    }
+
+    #[staticmethod]
+    fn multiexp_unchecked(points: Vec<G1Point>, scalars: Vec<Scalar>) -> PyResult<G1Point> {
+        let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
+        let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
+
+        // Convert the points to affine.
+        // TODO: we could have a G1AffinePoint struct and then a G1ProjectivePoint
+        // TODO struct, so that this cost is explicit
+        let affine_points = G1Projective::batch_convert_to_mul_base(&points);
+        let result = G1Projective::msm_unchecked(&affine_points, &scalars);
+        Ok(G1Point(result))
     }
 }
 
 #[derive(Copy, Clone)]
 #[pyclass]
-pub struct G2Point(G2Affine);
+pub struct G2Point(G2Projective);
 
 #[pymethods]
 impl G2Point {
     #[new]
     fn generator() -> Self {
-        G2Point(G2Affine::generator())
+        G2Point(G2Affine::generator().into())
     }
     #[staticmethod]
     fn identity() -> Self {
-        G2Point(G2Affine::identity())
+        G2Point(G2Affine::identity().into())
     }
 
     // Overriding operators
@@ -126,16 +140,30 @@ impl G2Point {
 
     #[staticmethod]
     fn from_compressed_bytes(bytes: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
-        let g2_point: G2Affine = CanonicalDeserialize::deserialize_compressed(&bytes[..])
+        let g2_point: G2Projective = CanonicalDeserialize::deserialize_compressed(&bytes[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(G2Point(g2_point))
     }
 
     #[staticmethod]
     fn from_compressed_bytes_unchecked(bytes: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
-        let g2_point: G2Affine = CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
-            .map_err(serialisation_error_to_py_err)?;
+        let g2_point: G2Projective =
+            CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
+                .map_err(serialisation_error_to_py_err)?;
         Ok(G2Point(g2_point))
+    }
+
+    #[staticmethod]
+    fn multiexp_unchecked(points: Vec<G2Point>, scalars: Vec<Scalar>) -> PyResult<G2Point> {
+        let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
+        let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
+
+        // Convert the points to affine.
+        // TODO: we could have a G2AffinePoint struct and then a G2ProjectivePoint
+        // TODO struct, so that this cost is explicit
+        let affine_points = G2Projective::batch_convert_to_mul_base(&points);
+        let result = G2Projective::msm_unchecked(&affine_points, &scalars);
+        Ok(G2Point(result))
     }
 }
 
@@ -196,15 +224,6 @@ impl Scalar {
     fn from_bytes(bytes: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
         let scalar: ark_bls12_381::Fr = CanonicalDeserialize::deserialize_compressed(&bytes[..])
             .map_err(serialisation_error_to_py_err)?;
-        Ok(Scalar(scalar))
-    }
-
-    // TODO: Check if this is skipping the modulo check ie Fp(bytes) < modulus
-    #[staticmethod]
-    fn from_bytes_unchecked(bytes: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
-        let scalar: ark_bls12_381::Fr =
-            CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
-                .map_err(serialisation_error_to_py_err)?;
         Ok(Scalar(scalar))
     }
 }
