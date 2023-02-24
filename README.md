@@ -63,8 +63,9 @@ from py_arkworks_bls12381 import G1Point, G2Point, GT, Scalar
 # Initilisation -- This is the generator point
 gt_gen = GT()
 
-# Identity
-id = GT.identity()
+# Zero/One
+zero = GT.zero()
+one = GT.one()
 
 # Computing a pairing using pairing and multi_pairing
 # multi_pairing does multiple pairings with only one final_exp
