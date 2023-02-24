@@ -19,6 +19,6 @@ assert a + neg_a == Scalar(0)
 assert (a + neg_a).is_zero()
 
 # Serialisation
-compressed_bytes = scalar.to_bytes()
-deserialised_scalar = Scalar.from_bytes(compressed_bytes)
+compressed_bytes = scalar.to_le_bytes()
+deserialised_scalar = Scalar.from_le_bytes(compressed_bytes)
 assert scalar == deserialised_scalar
