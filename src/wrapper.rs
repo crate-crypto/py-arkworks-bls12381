@@ -1,6 +1,7 @@
 use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
+use ark_ff::One;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult};
@@ -208,6 +209,10 @@ impl Scalar {
         use ark_ff::fields::Field;
         Scalar(self.0.square())
     }
+    fn inverse(&self) -> Scalar {
+        use ark_ff::fields::Field;
+        Scalar(self.0.inverse().unwrap_or_default())
+    }
     fn is_zero(&self) -> bool {
         self.0.is_zero()
     }
@@ -240,8 +245,12 @@ impl GT {
     }
 
     #[staticmethod]
-    fn identity() -> GT {
+    fn zero() -> GT {
         GT(ark_bls12_381::Fq12::zero())
+    }
+    #[staticmethod]
+    fn one() -> GT {
+        GT(ark_bls12_381::Fq12::one())
     }
 
     #[staticmethod]
