@@ -192,7 +192,7 @@ impl Scalar {
         Scalar(-self.0)
     }
     fn __str__(&self) -> PyResult<String> {
-        return Ok(hex::encode(self.to_bytes()?));
+        return Ok(hex::encode(self.to_le_bytes()?));
     }
     fn __richcmp__(&self, other: Scalar, op: pyclass::CompareOp) -> PyResult<bool> {
         match op {
@@ -212,7 +212,7 @@ impl Scalar {
         self.0.is_zero()
     }
 
-    fn to_bytes(&self) -> PyResult<[u8; SCALAR_SIZE]> {
+    fn to_le_bytes(&self) -> PyResult<[u8; SCALAR_SIZE]> {
         let mut bytes = [0u8; SCALAR_SIZE];
         self.0
             .serialize_compressed(&mut bytes[..])
@@ -221,7 +221,7 @@ impl Scalar {
         Ok(bytes)
     }
     #[staticmethod]
-    fn from_bytes(bytes: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
+    fn from_le_bytes(bytes: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
         let scalar: ark_bls12_381::Fr = CanonicalDeserialize::deserialize_compressed(&bytes[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(Scalar(scalar))
