@@ -1,5 +1,7 @@
 # py_arkworks_bls12381
 
+The main usage of this library at this moment is to generate test vectors for EIP4844 in the [consensus-specs](https://github.com/ethereum/consensus-specs/tree/master). The library itself is generic, so feel free to use it for other purposes.
+
 ## G1/G2Points
 
 ```python
