@@ -4,8 +4,8 @@ use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
 use ark_ff::One;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_traits::identities::Zero;
-use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult};
-
+use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
 const SCALAR_SIZE: usize = 32;
@@ -27,13 +27,13 @@ impl G1Point {
 
     // Overriding operators
     fn __add__(&self, rhs: G1Point) -> G1Point {
-        G1Point((self.0 + rhs.0).into())
+            G1Point(self.0 + rhs.0)
     }
     fn __sub__(&self, rhs: G1Point) -> G1Point {
         G1Point((self.0 - rhs.0).into())
     }
     fn __mul__(&self, rhs: Scalar) -> G1Point {
-        G1Point((self.0 * rhs.0).into())
+        G1Point(self.0 * rhs.0)
     }
     fn __neg__(&self) -> G1Point {
         G1Point(-self.0)
@@ -76,16 +76,19 @@ impl G1Point {
     }
 
     #[staticmethod]
-    fn multiexp_unchecked(points: Vec<G1Point>, scalars: Vec<Scalar>) -> PyResult<G1Point> {
-        let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
-        let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
+    fn multiexp_unchecked(py : Python, points: Vec<G1Point>, scalars: Vec<Scalar>) -> PyResult<G1Point> {
+        py.allow_threads(|| {
+            let points: Vec<_> = points.into_par_iter().map(|point| point.0).collect();
+            let scalars: Vec<_> = scalars.into_par_iter().map(|scalar| scalar.0).collect();
+    
+            // Convert the points to affine.
+            // TODO: we could have a G1AffinePoint struct and then a G1ProjectivePoint
+            // TODO struct, so that this cost is explicit
+            let affine_points = G1Projective::batch_convert_to_mul_base(&points);
+            let result = G1Projective::msm_unchecked(&affine_points, &scalars);
+            Ok(G1Point(result))
 
-        // Convert the points to affine.
-        // TODO: we could have a G1AffinePoint struct and then a G1ProjectivePoint
-        // TODO struct, so that this cost is explicit
-        let affine_points = G1Projective::batch_convert_to_mul_base(&points);
-        let result = G1Projective::msm_unchecked(&affine_points, &scalars);
-        Ok(G1Point(result))
+        })
     }
 }
 
@@ -106,13 +109,13 @@ impl G2Point {
 
     // Overriding operators
     fn __add__(&self, rhs: G2Point) -> G2Point {
-        G2Point((self.0 + rhs.0).into())
+        G2Point(self.0 + rhs.0)
     }
     fn __sub__(&self, rhs: G2Point) -> G2Point {
-        G2Point((self.0 - rhs.0).into())
+        G2Point(self.0 - rhs.0)
     }
     fn __mul__(&self, rhs: Scalar) -> G2Point {
-        G2Point((self.0 * rhs.0).into())
+        G2Point(self.0 * rhs.0)
     }
     fn __neg__(&self) -> G2Point {
         G2Point(-self.0)
@@ -155,16 +158,18 @@ impl G2Point {
     }
 
     #[staticmethod]
-    fn multiexp_unchecked(points: Vec<G2Point>, scalars: Vec<Scalar>) -> PyResult<G2Point> {
-        let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
-        let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
-
-        // Convert the points to affine.
-        // TODO: we could have a G2AffinePoint struct and then a G2ProjectivePoint
-        // TODO struct, so that this cost is explicit
-        let affine_points = G2Projective::batch_convert_to_mul_base(&points);
-        let result = G2Projective::msm_unchecked(&affine_points, &scalars);
-        Ok(G2Point(result))
+    fn multiexp_unchecked(py: Python,points: Vec<G2Point>, scalars: Vec<Scalar>) -> PyResult<G2Point> {
+        py.allow_threads(|| {
+            let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
+            let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
+    
+            // Convert the points to affine.
+            // TODO: we could have a G2AffinePoint struct and then a G2ProjectivePoint
+            // TODO struct, so that this cost is explicit
+            let affine_points = G2Projective::batch_convert_to_mul_base(&points);
+            let result = G2Projective::msm_unchecked(&affine_points, &scalars);
+            Ok(G2Point(result))
+        })
     }
 }
 
@@ -254,14 +259,18 @@ impl GT {
     }
 
     #[staticmethod]
-    fn multi_pairing(g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> GT {
-        let g1_inner = g1s.into_iter().map(|g1| g1.0);
-        let g2_inner = g2s.into_iter().map(|g2| g2.0);
-        GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0)
+    fn multi_pairing(py:Python,g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> GT {
+        py.allow_threads(||{
+            let g1_inner : Vec<G1Affine>= g1s.into_par_iter().map(|g1| g1.0.into()).collect();
+            let g2_inner : Vec<G2Affine>= g2s.into_par_iter().map(|g2| g2.0.into()).collect();
+            GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0)
+        })
     }
     #[staticmethod]
-    fn pairing(g1: G1Point, g2: G2Point) -> GT {
-        GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0)
+    fn pairing(py : Python, g1: G1Point, g2: G2Point) -> GT {
+        py.allow_threads(|| {
+            GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0)
+        })
     }
 
     // Overriding operators
