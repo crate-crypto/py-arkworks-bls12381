@@ -27,7 +27,6 @@ def pairing_check(values : Sequence[Tuple[G1Point, G2Point]]) -> bool:
     g2s = [p_q_1[1], p_q_2[1]]
     return GT.multi_pairing(g1s, g2s) == GT.one()
 
-
 def G1_to_bytes48(point : G1Point) -> bytes:
     return point.to_compressed_bytes()
 
@@ -45,6 +44,8 @@ def bytes48_to_G1(bytes48) -> G1Point:
     return G1Point.from_compressed_bytes_unchecked(bytes48)
 
 
+# Small test code to make sure it compiles and show
+# you how to call the methods
 bytes48 = G1_to_bytes48(G1Point())
 g1_point = bytes48_to_G1(bytes48)
 
