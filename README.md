@@ -149,3 +149,9 @@ maturin develop
 ```
 python3 examples/point.py
 ```
+
+# Benchmarks
+
+```
+python3 -m examples.benches.bench
+```
