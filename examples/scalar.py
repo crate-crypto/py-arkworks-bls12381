@@ -11,12 +11,20 @@ assert max_value + Scalar(2) == Scalar(1)
 assert scalar == scalar
 assert Scalar(1234) != Scalar(4567)
 
-# Scalar Addition/subtraction/Negation -- We override the add/sub/neg operators
+# Scalar arithmetic -- We override the mul/div/add/sub/neg operators
 a = Scalar(3)
 b = Scalar(4)
 c = Scalar(5)
 assert a.square() + b.square() == c.square()
 assert a * a + b * b == c * c
+
+assert Scalar(12) / Scalar(3) == Scalar(4)
+
+try:
+    assert Scalar(12) / Scalar(0)
+    assert False
+except ZeroDivisionError:
+    pass
 
 neg_a = -a
 assert a + neg_a == Scalar(0)
@@ -26,3 +34,6 @@ assert (a + neg_a).is_zero()
 compressed_bytes = scalar.to_le_bytes()
 deserialised_scalar = Scalar.from_le_bytes(compressed_bytes)
 assert scalar == deserialised_scalar
+
+# Conversion to int
+assert int(Scalar(12345)) == 12345

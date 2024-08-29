@@ -8,7 +8,7 @@ use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use num_bigint::BigUint;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyValueError, PyZeroDivisionError};
 
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
@@ -200,6 +200,13 @@ impl Scalar {
     fn __mul__(&self, rhs: Scalar) -> Scalar {
         Scalar(self.0 * rhs.0)
     }
+    fn __truediv__(&self, rhs: Scalar) -> PyResult<Scalar> {
+        if rhs.is_zero() {
+            let message = "Cannot divide by zero";
+            return Err(PyZeroDivisionError::new_err(message));
+        }
+        Ok(Scalar(self.0 / rhs.0))
+    }
     fn __neg__(&self) -> Scalar {
         Scalar(-self.0)
     }
@@ -214,6 +221,10 @@ impl Scalar {
                 "comparison operator not implemented".to_owned(),
             )),
         }
+    }
+    fn __int__(&self) -> BigUint {
+        // Bug, Fr::to_string will print nothing if the value is zero
+        BigUint::from_str(&*self.0.to_string()).unwrap_or(BigUint::ZERO)
     }
 
     fn square(&self) -> Scalar {
