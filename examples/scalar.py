@@ -3,6 +3,10 @@ from py_arkworks_bls12381 import Scalar
 # Initialisation - The default initialiser for a scalar is an u128 integer
 scalar = Scalar(12345)
 
+# It should be possible to instantiate BLS_MODULUS - 1
+max_value = Scalar(52435875175126190479447740508185965837690552500527637822603658699938581184512)
+assert max_value + Scalar(2) == Scalar(1)
+
 # Equality -- We override eq and neq operators
 assert scalar == scalar
 assert Scalar(1234) != Scalar(4567)

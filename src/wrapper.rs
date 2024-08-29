@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
@@ -6,6 +7,9 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+use num_bigint::BigUint;
+use pyo3::exceptions::PyValueError;
+
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
 const SCALAR_SIZE: usize = 32;
@@ -80,7 +84,7 @@ impl G1Point {
         py.allow_threads(|| {
             let points: Vec<_> = points.into_par_iter().map(|point| point.0).collect();
             let scalars: Vec<_> = scalars.into_par_iter().map(|scalar| scalar.0).collect();
-    
+
             // Convert the points to affine.
             // TODO: we could have a G1AffinePoint struct and then a G1ProjectivePoint
             // TODO struct, so that this cost is explicit
@@ -162,7 +166,7 @@ impl G2Point {
         py.allow_threads(|| {
             let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
             let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
-    
+
             // Convert the points to affine.
             // TODO: we could have a G2AffinePoint struct and then a G2ProjectivePoint
             // TODO struct, so that this cost is explicit
@@ -180,8 +184,10 @@ pub struct Scalar(ark_bls12_381::Fr);
 #[pymethods]
 impl Scalar {
     #[new]
-    fn new(integer: u128) -> Self {
-        Scalar(ark_bls12_381::Fr::from(integer))
+    fn new(integer: BigUint) -> PyResult<Self> {
+        let fr = ark_bls12_381::Fr::from_str(&*integer.to_string())
+            .map_err(|_| PyValueError::new_err("Value is greater than BLS_MODULUS"))?;
+        Ok(Scalar(fr))
     }
 
     // Overriding operators
