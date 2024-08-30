@@ -12,8 +12,6 @@ use std::str::FromStr;
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
 const SCALAR_SIZE: usize = 32;
-const BLS_MODULUS: &str =
-    "52435875175126190479447740508185965837690552500527637822603658699938581184513";
 
 #[derive(Copy, Clone)]
 #[pyclass]
@@ -234,16 +232,8 @@ impl Scalar {
         BigUint::from(self.0.into_bigint())
     }
 
-    fn pow(&self, exp: Scalar) -> PyResult<Scalar> {
-        let bls_modulus = BigUint::from_str(BLS_MODULUS).unwrap();
-        let base_bigint = BigUint::from_bytes_le(self.to_le_bytes()?.as_slice());
-        let exp_bigint = BigUint::from_bytes_le(exp.to_le_bytes()?.as_slice());
-        let result = base_bigint.modpow(&exp_bigint, &bls_modulus);
-        Ok(Scalar(
-            ark_bls12_381::Fr::from_str(&*result.to_string()).map_err(|_| {
-                exceptions::PyValueError::new_err("Failed to convert result to scalar")
-            })?,
-        ))
+    fn pow(&self, exp: Scalar) -> Scalar {
+        Scalar(self.0.pow(exp.0.into_bigint()))
     }
     fn square(&self) -> Scalar {
         use ark_ff::fields::Field;
