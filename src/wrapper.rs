@@ -1,7 +1,7 @@
 use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
-use ark_ff::One;
+use ark_ff::{One, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_bigint::BigUint;
 use num_traits::identities::Zero;
@@ -231,8 +231,7 @@ impl Scalar {
         }
     }
     fn __int__(&self) -> BigUint {
-        // Bug, Fr::to_string will print nothing if the value is zero
-        BigUint::from_str(&*self.0.to_string()).unwrap_or(BigUint::ZERO)
+        BigUint::from(self.0.into_bigint())
     }
 
     fn pow(&self, exp: Scalar) -> PyResult<Scalar> {
