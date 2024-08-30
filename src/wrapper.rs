@@ -2,13 +2,12 @@ use std::str::FromStr;
 use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
-use ark_ff::One;
+use ark_ff::{One, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use num_bigint::BigUint;
-use pyo3::exceptions::{PyValueError, PyZeroDivisionError};
 
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
@@ -186,7 +185,7 @@ impl Scalar {
     #[new]
     fn new(integer: BigUint) -> PyResult<Self> {
         let fr = ark_bls12_381::Fr::from_str(&*integer.to_string())
-            .map_err(|_| PyValueError::new_err("Value is greater than BLS_MODULUS"))?;
+            .map_err(|_| exceptions::PyValueError::new_err("Value is greater than BLS_MODULUS"))?;
         Ok(Scalar(fr))
     }
 
@@ -203,7 +202,7 @@ impl Scalar {
     fn __truediv__(&self, rhs: Scalar) -> PyResult<Scalar> {
         if rhs.is_zero() {
             let message = "Cannot divide by zero";
-            return Err(PyZeroDivisionError::new_err(message));
+            return Err(exceptions::PyZeroDivisionError::new_err(message));
         }
         Ok(Scalar(self.0 / rhs.0))
     }
@@ -227,6 +226,15 @@ impl Scalar {
         BigUint::from_str(&*self.0.to_string()).unwrap_or(BigUint::ZERO)
     }
 
+    fn pow(&self, exp: Scalar) -> Scalar {
+        // TODO: This is ugly, clean up.
+        let base_bigint = BigUint::from_bytes_le(self.to_le_bytes().unwrap().as_slice());
+        let exp_bigint = BigUint::from_bytes_le(exp.to_le_bytes().unwrap().as_slice());
+        let bls_modulus = BigUint::from_str("52435875175126190479447740508185965837690552500527637822603658699938581184513").unwrap();
+        let result = base_bigint.modpow(&exp_bigint, &bls_modulus);
+        let fr = ark_bls12_381::Fr::from_str(&*result.to_string()).unwrap();
+        Scalar(fr)
+    }
     fn square(&self) -> Scalar {
         use ark_ff::fields::Field;
         Scalar(self.0.square())
