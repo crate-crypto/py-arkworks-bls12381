@@ -125,32 +125,42 @@ assert scalar == deserialised_scalar
 
 ##  Development
 
-You will need maturin to build the project.
+First, activate the virtual environment:
+
+```
+python3 -m venv .env
+source .env/bin/activate
+```
+
+Then, install `maturin` which is needed to build the project:
 
 ```
 pip install maturin
 ```
 
-
-- First activate the virtual environment
-
-```
- source .env/bin/activate
-```
-
-- Next build the rust package and install it in your virtual environment
+Next, build the rust package and install it in your virtual environment:
 
 ```
 maturin develop
 ```
 
-- Now run a file in the examples folder
+Finally, run a file in the examples folder:
 
 ```
 python3 examples/point.py
 ```
 
-# Benchmarks
+## Benchmarks
+
+This is to be executed in the virtual environment above.
+
+First, install `py_ecc` which is used as a comparison:
+
+```
+pip install py_ecc
+```
+
+Then, run the benchmarks with this command:
 
 ```
 python3 -m examples.benches.bench
