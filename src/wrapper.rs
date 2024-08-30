@@ -1,13 +1,13 @@
-use std::str::FromStr;
 use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
 use ark_ff::{Field, One, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use num_bigint::BigUint;
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use num_bigint::BigUint;
+use std::str::FromStr;
 
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
@@ -30,7 +30,7 @@ impl G1Point {
 
     // Overriding operators
     fn __add__(&self, rhs: G1Point) -> G1Point {
-            G1Point(self.0 + rhs.0)
+        G1Point(self.0 + rhs.0)
     }
     fn __sub__(&self, rhs: G1Point) -> G1Point {
         G1Point((self.0 - rhs.0).into())
@@ -79,7 +79,11 @@ impl G1Point {
     }
 
     #[staticmethod]
-    fn multiexp_unchecked(py : Python, points: Vec<G1Point>, scalars: Vec<Scalar>) -> PyResult<G1Point> {
+    fn multiexp_unchecked(
+        py: Python,
+        points: Vec<G1Point>,
+        scalars: Vec<Scalar>,
+    ) -> PyResult<G1Point> {
         py.allow_threads(|| {
             let points: Vec<_> = points.into_par_iter().map(|point| point.0).collect();
             let scalars: Vec<_> = scalars.into_par_iter().map(|scalar| scalar.0).collect();
@@ -90,7 +94,6 @@ impl G1Point {
             let affine_points = G1Projective::batch_convert_to_mul_base(&points);
             let result = G1Projective::msm_unchecked(&affine_points, &scalars);
             Ok(G1Point(result))
-
         })
     }
 }
@@ -161,7 +164,11 @@ impl G2Point {
     }
 
     #[staticmethod]
-    fn multiexp_unchecked(py: Python,points: Vec<G2Point>, scalars: Vec<Scalar>) -> PyResult<G2Point> {
+    fn multiexp_unchecked(
+        py: Python,
+        points: Vec<G2Point>,
+        scalars: Vec<Scalar>,
+    ) -> PyResult<G2Point> {
         py.allow_threads(|| {
             let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
             let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
@@ -278,18 +285,16 @@ impl GT {
     }
 
     #[staticmethod]
-    fn multi_pairing(py:Python,g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> GT {
-        py.allow_threads(||{
-            let g1_inner : Vec<G1Affine>= g1s.into_par_iter().map(|g1| g1.0.into()).collect();
-            let g2_inner : Vec<G2Affine>= g2s.into_par_iter().map(|g2| g2.0.into()).collect();
+    fn multi_pairing(py: Python, g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> GT {
+        py.allow_threads(|| {
+            let g1_inner: Vec<G1Affine> = g1s.into_par_iter().map(|g1| g1.0.into()).collect();
+            let g2_inner: Vec<G2Affine> = g2s.into_par_iter().map(|g2| g2.0.into()).collect();
             GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0)
         })
     }
     #[staticmethod]
-    fn pairing(py : Python, g1: G1Point, g2: G2Point) -> GT {
-        py.allow_threads(|| {
-            GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0)
-        })
+    fn pairing(py: Python, g1: G1Point, g2: G2Point) -> GT {
+        py.allow_threads(|| GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0))
     }
 
     // Overriding operators
