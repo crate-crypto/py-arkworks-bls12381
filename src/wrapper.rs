@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
@@ -6,9 +7,12 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+use num_bigint::BigUint;
+
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
 const SCALAR_SIZE: usize = 32;
+const BLS_MODULUS: &str = "52435875175126190479447740508185965837690552500527637822603658699938581184513";
 
 #[derive(Copy, Clone)]
 #[pyclass]
@@ -187,8 +191,10 @@ pub struct Scalar(ark_bls12_381::Fr);
 #[pymethods]
 impl Scalar {
     #[new]
-    fn new(integer: u128) -> Self {
-        Scalar(ark_bls12_381::Fr::from(integer))
+    fn new(integer: BigUint) -> PyResult<Self> {
+        let fr = ark_bls12_381::Fr::from_str(&*integer.to_string())
+            .map_err(|_| exceptions::PyValueError::new_err("Value is greater than BLS_MODULUS"))?;
+        Ok(Scalar(fr))
     }
 
     // Overriding operators
@@ -200,6 +206,13 @@ impl Scalar {
     }
     fn __mul__(&self, rhs: Scalar) -> Scalar {
         Scalar(self.0 * rhs.0)
+    }
+    fn __truediv__(&self, rhs: Scalar) -> PyResult<Scalar> {
+        if rhs.is_zero() {
+            let message = "Cannot divide by zero";
+            return Err(exceptions::PyZeroDivisionError::new_err(message));
+        }
+        Ok(Scalar(self.0 / rhs.0))
     }
     fn __neg__(&self) -> Scalar {
         Scalar(-self.0)
@@ -216,7 +229,22 @@ impl Scalar {
             )),
         }
     }
+    fn __int__(&self) -> BigUint {
+        // Bug, Fr::to_string will print nothing if the value is zero
+        BigUint::from_str(&*self.0.to_string()).unwrap_or(BigUint::ZERO)
+    }
 
+    fn pow(&self, exp: Scalar) -> PyResult<Scalar> {
+        let bls_modulus = BigUint::from_str(BLS_MODULUS).unwrap();
+        let base_bigint = BigUint::from_bytes_le(self.to_le_bytes()?.as_slice());
+        let exp_bigint = BigUint::from_bytes_le(exp.to_le_bytes()?.as_slice());
+        let result = base_bigint.modpow(&exp_bigint, &bls_modulus);
+        Ok(Scalar(
+            ark_bls12_381::Fr::from_str(&*result.to_string()).map_err(|_| {
+                exceptions::PyValueError::new_err("Failed to convert result to scalar")
+            })?,
+        ))
+    }
     fn square(&self) -> Scalar {
         use ark_ff::fields::Field;
         Scalar(self.0.square())
