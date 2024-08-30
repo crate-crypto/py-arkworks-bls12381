@@ -1,18 +1,19 @@
-use std::str::FromStr;
 use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
 use ark_ff::One;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use num_bigint::BigUint;
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use num_bigint::BigUint;
+use std::str::FromStr;
 
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
 const SCALAR_SIZE: usize = 32;
-const BLS_MODULUS: &str = "52435875175126190479447740508185965837690552500527637822603658699938581184513";
+const BLS_MODULUS: &str =
+    "52435875175126190479447740508185965837690552500527637822603658699938581184513";
 
 #[derive(Copy, Clone)]
 #[pyclass]
