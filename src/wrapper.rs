@@ -229,8 +229,7 @@ impl Scalar {
         }
     }
     fn __int__(&self) -> BigUint {
-        // Bug, Fr::to_string will print nothing if the value is zero
-        BigUint::from_str(&*self.0.to_string()).unwrap_or(BigUint::ZERO)
+        BigUint::from(self.0.into_bigint())
     }
 
     fn pow(&self, exp: Scalar) -> Scalar {

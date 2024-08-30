@@ -41,4 +41,5 @@ deserialised_scalar = Scalar.from_le_bytes(compressed_bytes)
 assert scalar == deserialised_scalar
 
 # Conversion to int
+assert int(Scalar(0)) == 0
 assert int(Scalar(12345)) == 12345
