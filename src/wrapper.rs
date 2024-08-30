@@ -1,7 +1,7 @@
 use ark_bls12_381::{G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
-use ark_ff::One;
+use ark_ff::{Field, One, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_bigint::BigUint;
 use num_traits::identities::Zero;
@@ -12,8 +12,6 @@ use std::str::FromStr;
 const G1_COMPRESSED_SIZE: usize = 48;
 const G2_COMPRESSED_SIZE: usize = 96;
 const SCALAR_SIZE: usize = 32;
-const BLS_MODULUS: &str =
-    "52435875175126190479447740508185965837690552500527637822603658699938581184513";
 
 #[derive(Copy, Clone)]
 #[pyclass]
@@ -235,16 +233,8 @@ impl Scalar {
         BigUint::from_str(&*self.0.to_string()).unwrap_or(BigUint::ZERO)
     }
 
-    fn pow(&self, exp: Scalar) -> PyResult<Scalar> {
-        let bls_modulus = BigUint::from_str(BLS_MODULUS).unwrap();
-        let base_bigint = BigUint::from_bytes_le(self.to_le_bytes()?.as_slice());
-        let exp_bigint = BigUint::from_bytes_le(exp.to_le_bytes()?.as_slice());
-        let result = base_bigint.modpow(&exp_bigint, &bls_modulus);
-        Ok(Scalar(
-            ark_bls12_381::Fr::from_str(&*result.to_string()).map_err(|_| {
-                exceptions::PyValueError::new_err("Failed to convert result to scalar")
-            })?,
-        ))
+    fn pow(&self, exp: Scalar) -> Scalar {
+        Scalar(self.0.pow(exp.0.into_bigint()))
     }
     fn square(&self) -> Scalar {
         use ark_ff::fields::Field;
