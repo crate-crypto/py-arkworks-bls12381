@@ -246,6 +246,9 @@ impl Scalar {
     fn is_zero(&self) -> bool {
         self.0.is_zero()
     }
+    fn is_one(&self) -> bool {
+        self.0.is_one()
+    }
 
     fn to_le_bytes(&self) -> PyResult<[u8; SCALAR_SIZE]> {
         let mut bytes = [0u8; SCALAR_SIZE];
