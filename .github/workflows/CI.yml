@@ -85,20 +85,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3 # Checkout the repository so we can have the pyptoject.toml file
       - uses: actions/download-artifact@v4
-        with:
-          pattern: wheels-*
-          path: all_artifacts
 
       - name: Display structure of downloaded artifacts
-        run: ls -R all_artifacts
-
-      - name: Prepare artifacts for upload
-        run: |
-          mkdir -p dist
-          find all_artifacts -name '*.whl' -exec cp {} dist/ \;
-          find all_artifacts -name '*.tar.gz' -exec cp {} dist/ \;
-          echo "Files prepared for upload:"
-          ls -la dist
+        run: ls -R wheels-*
 
       - name: Publish to PyPI
         env:
@@ -106,4 +95,4 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: upload
-          args: --verbose --skip-existing dist/*
+          args: --non-interactive --skip-existing wheels-*/*
