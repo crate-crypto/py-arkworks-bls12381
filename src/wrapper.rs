@@ -14,7 +14,7 @@ const G2_COMPRESSED_SIZE: usize = 96;
 const SCALAR_SIZE: usize = 32;
 
 #[derive(Copy, Clone)]
-#[pyclass]
+#[pyclass(subclass)]
 pub struct G1Point(G1Projective);
 
 #[pymethods]
@@ -99,7 +99,7 @@ impl G1Point {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass]
+#[pyclass(subclass)]
 pub struct G2Point(G2Projective);
 
 #[pymethods]
@@ -184,7 +184,7 @@ impl G2Point {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass]
+#[pyclass(subclass)]
 pub struct Scalar(ark_bls12_381::Fr);
 
 #[pymethods]
@@ -264,7 +264,7 @@ impl Scalar {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass]
+#[pyclass(subclass)]
 pub struct GT(ark_bls12_381::Fq12);
 
 #[pymethods]
