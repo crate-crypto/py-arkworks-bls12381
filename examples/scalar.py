@@ -43,3 +43,9 @@ assert scalar == deserialised_scalar
 # Conversion to int
 assert int(Scalar(0)) == 0
 assert int(Scalar(12345)) == 12345
+
+# The ability to inherit Scalar
+class NewScalar(Scalar):
+    pass
+
+assert NewScalar(1) == Scalar(1)
