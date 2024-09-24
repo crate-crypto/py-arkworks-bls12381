@@ -27,7 +27,7 @@ jobs:
           args: --release --out dist --sdist --find-interpreter
           manylinux: auto
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -50,7 +50,7 @@ jobs:
           target: ${{ matrix.target }}
           args: --release --out dist --sdist --find-interpreter
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -72,7 +72,7 @@ jobs:
           target: ${{ matrix.target }}
           args: --release --out dist --sdist --find-interpreter
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -83,7 +83,7 @@ jobs:
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [linux, windows, macos]
     steps:
-      - uses: actions/download-artifact@v4.1.7
+      - uses: actions/download-artifact@v4
         with:
           name: wheels
       - name: Publish to PyPI
