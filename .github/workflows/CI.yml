@@ -91,7 +91,7 @@ jobs:
 
       - name: Publish to PyPI
         env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_PASSWORD }}
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         uses: PyO3/maturin-action@v1
         with:
           command: upload
