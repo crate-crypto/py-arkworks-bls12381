@@ -9,7 +9,7 @@ name = "py_arkworks_bls12381"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.22.2", features = ["extension-module", "num-bigint"] }
+pyo3 = { version = "0.25", features = ["extension-module", "num-bigint"] }
 ark-bls12-381 = "0.4.0"
 ark-serialize = "0.4.0"
 ark-ec = "0.4.0"
