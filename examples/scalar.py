@@ -44,8 +44,10 @@ assert scalar == deserialised_scalar
 assert int(Scalar(0)) == 0
 assert int(Scalar(12345)) == 12345
 
-# The ability to inherit Scalar
-class NewScalar(Scalar):
+# Verify Scalar is not subclassable
+try:
+    class NewScalar(Scalar):
+        pass
+    assert False, "Should not be able to subclass Scalar"
+except TypeError:
     pass
-
-assert NewScalar(1) == Scalar(1)
