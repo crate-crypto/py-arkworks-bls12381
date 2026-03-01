@@ -43,13 +43,11 @@ jobs:
           command: develop
           args: --release
           sccache: true
-      - name: Run examples
+      - name: Run tests
         run: |
           source .venv/bin/activate
-          python examples/point.py
-          python examples/scalar.py
-          python examples/pairing.py
-          python examples/eip2537.py
+          pip install pytest
+          pytest tests/ -v
       - name: Check type stubs
         run: |
           source .venv/bin/activate

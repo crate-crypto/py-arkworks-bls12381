@@ -19,6 +19,9 @@ classifiers = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+dev = ["pytest", "pytest-benchmark"]
+
 [project.urls]
 Repository = "https://github.com/crate-crypto/py_arkworks_bls12381"
 
