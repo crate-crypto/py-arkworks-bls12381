@@ -8,7 +8,6 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError
 use num_bigint::BigUint;
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
-use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
@@ -186,8 +185,8 @@ impl G1Point {
         scalars: Vec<Scalar>,
     ) -> PyResult<G1Point> {
         py.detach(|| {
-            let points: Vec<_> = points.into_par_iter().map(|point| point.0).collect();
-            let scalars: Vec<_> = scalars.into_par_iter().map(|scalar| scalar.0).collect();
+            let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
+            let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
 
             // Convert the points to affine.
             // TODO: we could have a G1AffinePoint struct and then a G1ProjectivePoint
@@ -393,8 +392,8 @@ impl G2Point {
         scalars: Vec<Scalar>,
     ) -> PyResult<G2Point> {
         py.detach(|| {
-            let points: Vec<_> = points.into_par_iter().map(|point| point.0).collect();
-            let scalars: Vec<_> = scalars.into_par_iter().map(|scalar| scalar.0).collect();
+            let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
+            let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
 
             // Convert the points to affine.
             // TODO: we could have a G2AffinePoint struct and then a G2ProjectivePoint
@@ -621,8 +620,8 @@ impl GT {
             ));
         }
         py.detach(|| {
-            let g1_inner: Vec<G1Affine> = g1s.into_par_iter().map(|g1| g1.0.into()).collect();
-            let g2_inner: Vec<G2Affine> = g2s.into_par_iter().map(|g2| g2.0.into()).collect();
+            let g1_inner: Vec<G1Affine> = g1s.into_iter().map(|g1| g1.0.into()).collect();
+            let g2_inner: Vec<G2Affine> = g2s.into_iter().map(|g2| g2.0.into()).collect();
             Ok(GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0))
         })
     }
@@ -645,8 +644,8 @@ impl GT {
             return Ok(true);
         }
         py.detach(|| {
-            let g1_inner: Vec<G1Affine> = g1s.into_par_iter().map(|g1| g1.0.into()).collect();
-            let g2_inner: Vec<G2Affine> = g2s.into_par_iter().map(|g2| g2.0.into()).collect();
+            let g1_inner: Vec<G1Affine> = g1s.into_iter().map(|g1| g1.0.into()).collect();
+            let g2_inner: Vec<G2Affine> = g2s.into_iter().map(|g2| g2.0.into()).collect();
             Ok(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner)
                 .0
                 .is_one())

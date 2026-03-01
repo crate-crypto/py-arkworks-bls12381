@@ -13,12 +13,10 @@ ark-bls12-381 = "0.4.0"
 ark-serialize = "0.4.0"
 ark-ec = "0.4.0"
 ark-ff = "0.4.0"
-rayon = "1.10"
 hex = "0.4"
 num-traits = "0.2"
 num-bigint = "0.4"
 
 [features]
-default = ["parallel", "asm"]
-parallel = ["ark-ec/parallel", "ark-ff/parallel"]
+default = ["asm"]
 asm = ["ark-ff/asm"]
