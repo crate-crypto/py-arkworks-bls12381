@@ -64,16 +64,16 @@ impl G1Point {
     }
 
     #[staticmethod]
-    fn from_compressed_bytes(bytes: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
-        let g1_point: G1Projective = CanonicalDeserialize::deserialize_compressed(&bytes[..])
+    fn from_compressed_bytes(data: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
+        let g1_point: G1Projective = CanonicalDeserialize::deserialize_compressed(&data[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(G1Point(g1_point))
     }
 
     #[staticmethod]
-    fn from_compressed_bytes_unchecked(bytes: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
+    fn from_compressed_bytes_unchecked(data: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
         let g1_point: G1Projective =
-            CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
+            CanonicalDeserialize::deserialize_compressed_unchecked(&data[..])
                 .map_err(serialisation_error_to_py_err)?;
         Ok(G1Point(g1_point))
     }
@@ -149,16 +149,16 @@ impl G2Point {
     }
 
     #[staticmethod]
-    fn from_compressed_bytes(bytes: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
-        let g2_point: G2Projective = CanonicalDeserialize::deserialize_compressed(&bytes[..])
+    fn from_compressed_bytes(data: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
+        let g2_point: G2Projective = CanonicalDeserialize::deserialize_compressed(&data[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(G2Point(g2_point))
     }
 
     #[staticmethod]
-    fn from_compressed_bytes_unchecked(bytes: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
+    fn from_compressed_bytes_unchecked(data: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
         let g2_point: G2Projective =
-            CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
+            CanonicalDeserialize::deserialize_compressed_unchecked(&data[..])
                 .map_err(serialisation_error_to_py_err)?;
         Ok(G2Point(g2_point))
     }
@@ -257,8 +257,8 @@ impl Scalar {
         Ok(bytes)
     }
     #[staticmethod]
-    fn from_le_bytes(bytes: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
-        let scalar: ark_bls12_381::Fr = CanonicalDeserialize::deserialize_compressed(&bytes[..])
+    fn from_le_bytes(data: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
+        let scalar: ark_bls12_381::Fr = CanonicalDeserialize::deserialize_compressed(&data[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(Scalar(scalar))
     }
