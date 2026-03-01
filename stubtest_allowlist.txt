@@ -1,0 +1,2 @@
+# The inner .so module is an implementation detail; users import from the top-level package.
+py_arkworks_bls12381.py_arkworks_bls12381
