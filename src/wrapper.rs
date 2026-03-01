@@ -14,7 +14,7 @@ const G2_COMPRESSED_SIZE: usize = 96;
 const SCALAR_SIZE: usize = 32;
 
 #[derive(Copy, Clone)]
-#[pyclass(subclass)]
+#[pyclass]
 pub struct G1Point(G1Projective);
 
 #[pymethods]
@@ -33,7 +33,7 @@ impl G1Point {
         G1Point(self.0 + rhs.0)
     }
     fn __sub__(&self, rhs: G1Point) -> G1Point {
-        G1Point((self.0 - rhs.0).into())
+        G1Point(self.0 - rhs.0)
     }
     fn __mul__(&self, rhs: Scalar) -> G1Point {
         G1Point(self.0 * rhs.0)
@@ -42,7 +42,7 @@ impl G1Point {
         G1Point(-self.0)
     }
     fn __str__(&self) -> PyResult<String> {
-        return Ok(hex::encode(self.to_compressed_bytes()?));
+        Ok(hex::encode(self.to_compressed_bytes()?))
     }
     fn __richcmp__(&self, other: G1Point, op: pyclass::CompareOp) -> PyResult<bool> {
         match op {
@@ -84,7 +84,7 @@ impl G1Point {
         points: Vec<G1Point>,
         scalars: Vec<Scalar>,
     ) -> PyResult<G1Point> {
-        py.allow_threads(|| {
+        py.detach(|| {
             let points: Vec<_> = points.into_par_iter().map(|point| point.0).collect();
             let scalars: Vec<_> = scalars.into_par_iter().map(|scalar| scalar.0).collect();
 
@@ -99,7 +99,7 @@ impl G1Point {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass(subclass)]
+#[pyclass]
 pub struct G2Point(G2Projective);
 
 #[pymethods]
@@ -127,7 +127,7 @@ impl G2Point {
         G2Point(-self.0)
     }
     fn __str__(&self) -> PyResult<String> {
-        return Ok(hex::encode(self.to_compressed_bytes()?));
+        Ok(hex::encode(self.to_compressed_bytes()?))
     }
     fn __richcmp__(&self, other: G2Point, op: pyclass::CompareOp) -> PyResult<bool> {
         match op {
@@ -169,7 +169,7 @@ impl G2Point {
         points: Vec<G2Point>,
         scalars: Vec<Scalar>,
     ) -> PyResult<G2Point> {
-        py.allow_threads(|| {
+        py.detach(|| {
             let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
             let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
 
@@ -184,7 +184,7 @@ impl G2Point {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass(subclass)]
+#[pyclass]
 pub struct Scalar(ark_bls12_381::Fr);
 
 #[pymethods]
@@ -217,7 +217,7 @@ impl Scalar {
         Scalar(-self.0)
     }
     fn __str__(&self) -> PyResult<String> {
-        return Ok(hex::encode(self.to_le_bytes()?));
+        Ok(hex::encode(self.to_le_bytes()?))
     }
     fn __richcmp__(&self, other: Scalar, op: pyclass::CompareOp) -> PyResult<bool> {
         match op {
@@ -236,11 +236,9 @@ impl Scalar {
         Scalar(self.0.pow(exp.0.into_bigint()))
     }
     fn square(&self) -> Scalar {
-        use ark_ff::fields::Field;
         Scalar(self.0.square())
     }
     fn inverse(&self) -> Scalar {
-        use ark_ff::fields::Field;
         Scalar(self.0.inverse().unwrap_or_default())
     }
     fn is_zero(&self) -> bool {
@@ -267,7 +265,7 @@ impl Scalar {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass(subclass)]
+#[pyclass]
 pub struct GT(ark_bls12_381::Fq12);
 
 #[pymethods]
@@ -288,7 +286,7 @@ impl GT {
 
     #[staticmethod]
     fn multi_pairing(py: Python, g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> GT {
-        py.allow_threads(|| {
+        py.detach(|| {
             let g1_inner: Vec<G1Affine> = g1s.into_par_iter().map(|g1| g1.0.into()).collect();
             let g2_inner: Vec<G2Affine> = g2s.into_par_iter().map(|g2| g2.0.into()).collect();
             GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0)
@@ -296,7 +294,7 @@ impl GT {
     }
     #[staticmethod]
     fn pairing(py: Python, g1: G1Point, g2: G2Point) -> GT {
-        py.allow_threads(|| GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0))
+        py.detach(|| GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0))
     }
 
     // Overriding operators
