@@ -35,10 +35,6 @@ four_gen = gen * scalar
 assert four_gen == gen + gen + gen + gen
 
 # Serialisation
-# 
-# serialising to/from a g1 point
-# We don't expose the uncompressed form 
-# because it seems like its not needed
 compressed_bytes = gen.to_compressed_bytes()
 deserialised_point = G1Point.from_compressed_bytes(compressed_bytes)
 # If the bytes being received are trusted, we can avoid

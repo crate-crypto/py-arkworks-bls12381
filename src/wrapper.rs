@@ -45,9 +45,9 @@ fn encode_fp(fp: &Fq, endian: Endian) -> PyResult<[u8; FP_SIZE]> {
     Ok(buf)
 }
 
-fn read_fp2(bytes: &[u8], endian: Endian) -> PyResult<Fq2> {
+fn read_fp2(bytes: &[u8; 2 * FP_SIZE], endian: Endian) -> PyResult<Fq2> {
     let c0 = read_fp(bytes[..FP_SIZE].try_into().unwrap(), endian)?;
-    let c1 = read_fp(bytes[FP_SIZE..2 * FP_SIZE].try_into().unwrap(), endian)?;
+    let c1 = read_fp(bytes[FP_SIZE..].try_into().unwrap(), endian)?;
     Ok(Fq2::new(c0, c1))
 }
 
@@ -434,8 +434,8 @@ impl G2Point {
             return Ok(G2Point(G2Affine::identity().into()));
         }
 
-        let x = read_fp2(&bytes[..2 * FP_SIZE], endian)?;
-        let y = read_fp2(&bytes[2 * FP_SIZE..], endian)?;
+        let x = read_fp2(bytes[..2 * FP_SIZE].try_into().unwrap(), endian)?;
+        let y = read_fp2(bytes[2 * FP_SIZE..].try_into().unwrap(), endian)?;
         let point = G2Affine::new_unchecked(x, y);
 
         if !point.is_on_curve() {
@@ -565,10 +565,31 @@ impl Scalar {
     }
 
     /// Deserialize scalar from 32-byte big-endian.
-    /// Reduces modulo the subgroup order.
+    /// Rejects non-canonical values (>= subgroup order).
     #[staticmethod]
     fn from_be_bytes(data: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
-        Ok(Scalar(ark_bls12_381::Fr::from_be_bytes_mod_order(&data)))
+        let mut le_data = data;
+        le_data.reverse();
+        let scalar: ark_bls12_381::Fr =
+            CanonicalDeserialize::deserialize_compressed(&le_data[..])
+                .map_err(serialisation_error_to_py_err)?;
+        Ok(Scalar(scalar))
+    }
+
+    /// Deserialize scalar from little-endian bytes with modular reduction.
+    /// Accepts arbitrary-length input; the value is reduced mod the subgroup order.
+    #[staticmethod]
+    fn from_le_bytes_mod_order(data: &[u8]) -> Scalar {
+        Scalar(ark_bls12_381::Fr::from_le_bytes_mod_order(data))
+    }
+
+    /// Deserialize scalar from big-endian bytes with modular reduction.
+    /// Accepts arbitrary-length input; the value is reduced mod the subgroup order.
+    #[staticmethod]
+    fn from_be_bytes_mod_order(data: &[u8]) -> Scalar {
+        let mut le_data = data.to_vec();
+        le_data.reverse();
+        Scalar(ark_bls12_381::Fr::from_le_bytes_mod_order(&le_data))
     }
 }
 

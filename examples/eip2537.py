@@ -74,10 +74,13 @@ s_recovered = Scalar.from_be_bytes(be_bytes)
 assert s == s_recovered, "Scalar big-endian roundtrip failed"
 print("Scalar big-endian roundtrip: OK")
 
-# Scalars are reduced mod order (not required to be canonical)
+# Non-canonical scalars (>= subgroup order) are rejected
 all_ones = bytes([0xff] * 32)
-s_big = Scalar.from_be_bytes(all_ones)
-print(f"Scalar from 0xff*32 (mod order): OK (is_zero={s_big.is_zero()})")
+try:
+    Scalar.from_be_bytes(all_ones)
+    assert False, "Should have raised ValueError"
+except ValueError:
+    print("Scalar from 0xff*32: correctly rejected (non-canonical): OK")
 
 # --- 4. MAP_FP_TO_G1 ---
 print("\n=== MAP_FP_TO_G1 ===")
