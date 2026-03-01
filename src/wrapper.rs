@@ -2,7 +2,7 @@ use ark_bls12_381::{Fq, Fq2, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::hashing::curve_maps::wb::WBMap;
 use ark_ec::hashing::map_to_curve_hasher::MapToCurve;
 use ark_ec::pairing::{Pairing, PairingOutput};
-use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
+use ark_ec::{AffineRepr, PrimeGroup, ScalarMul, VariableBaseMSM};
 use ark_ff::{Field, One, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_bigint::BigUint;
@@ -205,8 +205,8 @@ impl G1Point {
         let mut result = [0u8; G1_UNCOMPRESSED_SIZE];
 
         if let Some((x, y)) = affine.xy() {
-            let x_bytes = encode_fp(x, endian)?;
-            let y_bytes = encode_fp(y, endian)?;
+            let x_bytes = encode_fp(&x, endian)?;
+            let y_bytes = encode_fp(&y, endian)?;
             result[..FP_SIZE].copy_from_slice(&x_bytes);
             result[FP_SIZE..].copy_from_slice(&y_bytes);
         }
@@ -243,10 +243,7 @@ impl G1Point {
 
     fn map_from_fp_impl(fp_bytes: [u8; FP_SIZE], endian: Endian) -> PyResult<G1Point> {
         let fp = read_fp(&fp_bytes, endian)?;
-        let mapper = WBMap::<ark_bls12_381::g1::Config>::new().map_err(|e| {
-            exceptions::PyValueError::new_err(format!("failed to create map: {e}"))
-        })?;
-        let point = mapper.map_to_curve(fp).map_err(|e| {
+        let point = WBMap::<ark_bls12_381::g1::Config>::map_to_curve(fp).map_err(|e| {
             exceptions::PyValueError::new_err(format!("map_to_curve failed: {e}"))
         })?;
         let cleared = point.clear_cofactor();
@@ -454,10 +451,7 @@ impl G2Point {
 
     fn map_from_fp2_impl(fp2_bytes: [u8; 2 * FP_SIZE], endian: Endian) -> PyResult<G2Point> {
         let fp2 = read_fp2(&fp2_bytes, endian)?;
-        let mapper = WBMap::<ark_bls12_381::g2::Config>::new().map_err(|e| {
-            exceptions::PyValueError::new_err(format!("failed to create map: {e}"))
-        })?;
-        let point = mapper.map_to_curve(fp2).map_err(|e| {
+        let point = WBMap::<ark_bls12_381::g2::Config>::map_to_curve(fp2).map_err(|e| {
             exceptions::PyValueError::new_err(format!("map_to_curve failed: {e}"))
         })?;
         let cleared = point.clear_cofactor();
