@@ -1,5 +1,8 @@
+from typing import final
+
 __all__ = ["G1Point", "G2Point", "GT", "Scalar"]
 
+@final
 class G1Point:
     def __new__(cls) -> G1Point: ...
     @staticmethod
@@ -34,6 +37,7 @@ class G1Point:
     @staticmethod
     def multiexp_unchecked(points: list[G1Point], scalars: list[Scalar]) -> G1Point: ...
 
+@final
 class G2Point:
     def __new__(cls) -> G2Point: ...
     @staticmethod
@@ -68,6 +72,7 @@ class G2Point:
     @staticmethod
     def multiexp_unchecked(points: list[G2Point], scalars: list[Scalar]) -> G2Point: ...
 
+@final
 class Scalar:
     def __new__(cls, integer: int) -> Scalar: ...
     def __add__(self, rhs: Scalar) -> Scalar: ...
@@ -91,6 +96,7 @@ class Scalar:
     @staticmethod
     def from_be_bytes(bytes: bytes) -> Scalar: ...
 
+@final
 class GT:
     def __new__(cls) -> GT: ...
     @staticmethod
