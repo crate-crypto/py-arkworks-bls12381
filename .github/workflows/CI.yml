@@ -41,6 +41,10 @@ jobs:
           python examples/scalar.py
           python examples/pairing.py
           python examples/eip2537.py
+      - name: Check type stubs
+        run: |
+          pip install mypy
+          python -m mypy.stubtest py_arkworks_bls12381 --allowlist stubtest_allowlist.txt
 
   linux:
     runs-on: ${{ matrix.platform.runner }}

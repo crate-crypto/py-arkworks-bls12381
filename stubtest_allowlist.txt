@@ -1,0 +1,9 @@
+# PyO3 native classes are flagged as disjoint bases by mypy stubtest.
+# This is expected for Rust extension types and cannot be annotated in stubs.
+py_arkworks_bls12381.G1Point
+py_arkworks_bls12381.G2Point
+py_arkworks_bls12381.GT
+py_arkworks_bls12381.Scalar
+
+# The inner .so module is an implementation detail; users import from the top-level package.
+py_arkworks_bls12381.py_arkworks_bls12381
