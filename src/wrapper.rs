@@ -84,7 +84,7 @@ impl G1Point {
         points: Vec<G1Point>,
         scalars: Vec<Scalar>,
     ) -> PyResult<G1Point> {
-        py.allow_threads(|| {
+        py.detach(|| {
             let points: Vec<_> = points.into_par_iter().map(|point| point.0).collect();
             let scalars: Vec<_> = scalars.into_par_iter().map(|scalar| scalar.0).collect();
 
@@ -169,7 +169,7 @@ impl G2Point {
         points: Vec<G2Point>,
         scalars: Vec<Scalar>,
     ) -> PyResult<G2Point> {
-        py.allow_threads(|| {
+        py.detach(|| {
             let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
             let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
 
@@ -288,7 +288,7 @@ impl GT {
 
     #[staticmethod]
     fn multi_pairing(py: Python, g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> GT {
-        py.allow_threads(|| {
+        py.detach(|| {
             let g1_inner: Vec<G1Affine> = g1s.into_par_iter().map(|g1| g1.0.into()).collect();
             let g2_inner: Vec<G2Affine> = g2s.into_par_iter().map(|g2| g2.0.into()).collect();
             GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0)
@@ -296,7 +296,7 @@ impl GT {
     }
     #[staticmethod]
     fn pairing(py: Python, g1: G1Point, g2: G2Point) -> GT {
-        py.allow_threads(|| GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0))
+        py.detach(|| GT(ark_bls12_381::Bls12_381::pairing(g1.0, g2.0).0))
     }
 
     // Overriding operators
