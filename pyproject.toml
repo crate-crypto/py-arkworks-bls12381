@@ -6,6 +6,8 @@ build-backend = "maturin"
 name = "py_arkworks_bls12381"
 description = "Python bindings for BLS12-381 curve operations using arkworks"
 readme = "README.md"
+license = "MIT OR Apache-2.0"
+authors = [{ name = "Kevaundray Wedderburn" }]
 requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Rust",

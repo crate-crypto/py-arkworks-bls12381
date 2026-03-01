@@ -9,6 +9,8 @@ use num_bigint::BigUint;
 use num_traits::identities::Zero;
 use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 const G1_COMPRESSED_SIZE: usize = 48;
@@ -69,7 +71,7 @@ impl G1Point {
         G1Point(self.0 + rhs.0)
     }
     fn __sub__(&self, rhs: G1Point) -> G1Point {
-        G1Point((self.0 - rhs.0).into())
+        G1Point(self.0 - rhs.0)
     }
     fn __mul__(&self, rhs: Scalar) -> G1Point {
         G1Point(self.0 * rhs.0)
@@ -78,7 +80,7 @@ impl G1Point {
         G1Point(-self.0)
     }
     fn __str__(&self) -> PyResult<String> {
-        return Ok(hex::encode(self.to_compressed_bytes()?));
+        Ok(hex::encode(self.to_compressed_bytes()?))
     }
     fn __richcmp__(&self, other: G1Point, op: pyclass::CompareOp) -> PyResult<bool> {
         match op {
@@ -88,6 +90,16 @@ impl G1Point {
                 "comparison operator not implemented".to_owned(),
             )),
         }
+    }
+    fn __hash__(&self) -> PyResult<i64> {
+        let bytes = self.to_compressed_bytes()?;
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        Ok(hasher.finish() as i64)
+    }
+    fn __repr__(&self) -> PyResult<String> {
+        let hex = hex::encode(self.to_compressed_bytes()?);
+        Ok(format!("G1Point(0x{}...{})", &hex[..8], &hex[hex.len() - 8..]))
     }
 
     fn is_in_subgroup(&self) -> bool {
@@ -105,16 +117,16 @@ impl G1Point {
     }
 
     #[staticmethod]
-    fn from_compressed_bytes(bytes: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
-        let g1_point: G1Projective = CanonicalDeserialize::deserialize_compressed(&bytes[..])
+    fn from_compressed_bytes(data: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
+        let g1_point: G1Projective = CanonicalDeserialize::deserialize_compressed(&data[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(G1Point(g1_point))
     }
 
     #[staticmethod]
-    fn from_compressed_bytes_unchecked(bytes: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
+    fn from_compressed_bytes_unchecked(data: [u8; G1_COMPRESSED_SIZE]) -> PyResult<G1Point> {
         let g1_point: G1Projective =
-            CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
+            CanonicalDeserialize::deserialize_compressed_unchecked(&data[..])
                 .map_err(serialisation_error_to_py_err)?;
         Ok(G1Point(g1_point))
     }
@@ -133,26 +145,26 @@ impl G1Point {
 
     /// Deserialize from 96-byte uncompressed big-endian format (x || y) with on-curve and subgroup checks.
     #[staticmethod]
-    fn from_xy_bytes_be(bytes: [u8; G1_UNCOMPRESSED_SIZE]) -> PyResult<G1Point> {
-        Self::from_xy_bytes_impl(bytes, Endian::Big, true)
+    fn from_xy_bytes_be(data: [u8; G1_UNCOMPRESSED_SIZE]) -> PyResult<G1Point> {
+        Self::from_xy_bytes_impl(data, Endian::Big, true)
     }
 
     /// Deserialize from 96-byte uncompressed little-endian format (x || y) with on-curve and subgroup checks.
     #[staticmethod]
-    fn from_xy_bytes_le(bytes: [u8; G1_UNCOMPRESSED_SIZE]) -> PyResult<G1Point> {
-        Self::from_xy_bytes_impl(bytes, Endian::Little, true)
+    fn from_xy_bytes_le(data: [u8; G1_UNCOMPRESSED_SIZE]) -> PyResult<G1Point> {
+        Self::from_xy_bytes_impl(data, Endian::Little, true)
     }
 
     /// Deserialize from 96-byte uncompressed big-endian format (x || y) with on-curve check only (no subgroup check).
     #[staticmethod]
-    fn from_xy_bytes_unchecked_be(bytes: [u8; G1_UNCOMPRESSED_SIZE]) -> PyResult<G1Point> {
-        Self::from_xy_bytes_impl(bytes, Endian::Big, false)
+    fn from_xy_bytes_unchecked_be(data: [u8; G1_UNCOMPRESSED_SIZE]) -> PyResult<G1Point> {
+        Self::from_xy_bytes_impl(data, Endian::Big, false)
     }
 
     /// Deserialize from 96-byte uncompressed little-endian format (x || y) with on-curve check only (no subgroup check).
     #[staticmethod]
-    fn from_xy_bytes_unchecked_le(bytes: [u8; G1_UNCOMPRESSED_SIZE]) -> PyResult<G1Point> {
-        Self::from_xy_bytes_impl(bytes, Endian::Little, false)
+    fn from_xy_bytes_unchecked_le(data: [u8; G1_UNCOMPRESSED_SIZE]) -> PyResult<G1Point> {
+        Self::from_xy_bytes_impl(data, Endian::Little, false)
     }
 
     /// Map a big-endian field element to a G1 point using SWU map with cofactor clearing.
@@ -271,7 +283,7 @@ impl G2Point {
         G2Point(-self.0)
     }
     fn __str__(&self) -> PyResult<String> {
-        return Ok(hex::encode(self.to_compressed_bytes()?));
+        Ok(hex::encode(self.to_compressed_bytes()?))
     }
     fn __richcmp__(&self, other: G2Point, op: pyclass::CompareOp) -> PyResult<bool> {
         match op {
@@ -281,6 +293,16 @@ impl G2Point {
                 "comparison operator not implemented".to_owned(),
             )),
         }
+    }
+    fn __hash__(&self) -> PyResult<i64> {
+        let bytes = self.to_compressed_bytes()?;
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        Ok(hasher.finish() as i64)
+    }
+    fn __repr__(&self) -> PyResult<String> {
+        let hex = hex::encode(self.to_compressed_bytes()?);
+        Ok(format!("G2Point(0x{}...{})", &hex[..8], &hex[hex.len() - 8..]))
     }
 
     fn is_in_subgroup(&self) -> bool {
@@ -298,16 +320,16 @@ impl G2Point {
     }
 
     #[staticmethod]
-    fn from_compressed_bytes(bytes: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
-        let g2_point: G2Projective = CanonicalDeserialize::deserialize_compressed(&bytes[..])
+    fn from_compressed_bytes(data: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
+        let g2_point: G2Projective = CanonicalDeserialize::deserialize_compressed(&data[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(G2Point(g2_point))
     }
 
     #[staticmethod]
-    fn from_compressed_bytes_unchecked(bytes: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
+    fn from_compressed_bytes_unchecked(data: [u8; G2_COMPRESSED_SIZE]) -> PyResult<G2Point> {
         let g2_point: G2Projective =
-            CanonicalDeserialize::deserialize_compressed_unchecked(&bytes[..])
+            CanonicalDeserialize::deserialize_compressed_unchecked(&data[..])
                 .map_err(serialisation_error_to_py_err)?;
         Ok(G2Point(g2_point))
     }
@@ -327,29 +349,29 @@ impl G2Point {
     /// Deserialize from 192-byte uncompressed big-endian format (x.c0 || x.c1 || y.c0 || y.c1)
     /// with on-curve and subgroup checks.
     #[staticmethod]
-    fn from_xy_bytes_be(bytes: [u8; G2_UNCOMPRESSED_SIZE]) -> PyResult<G2Point> {
-        Self::from_xy_bytes_impl(bytes, Endian::Big, true)
+    fn from_xy_bytes_be(data: [u8; G2_UNCOMPRESSED_SIZE]) -> PyResult<G2Point> {
+        Self::from_xy_bytes_impl(data, Endian::Big, true)
     }
 
     /// Deserialize from 192-byte uncompressed little-endian format (x.c0 || x.c1 || y.c0 || y.c1)
     /// with on-curve and subgroup checks.
     #[staticmethod]
-    fn from_xy_bytes_le(bytes: [u8; G2_UNCOMPRESSED_SIZE]) -> PyResult<G2Point> {
-        Self::from_xy_bytes_impl(bytes, Endian::Little, true)
+    fn from_xy_bytes_le(data: [u8; G2_UNCOMPRESSED_SIZE]) -> PyResult<G2Point> {
+        Self::from_xy_bytes_impl(data, Endian::Little, true)
     }
 
     /// Deserialize from 192-byte uncompressed big-endian format (x.c0 || x.c1 || y.c0 || y.c1)
     /// with on-curve check only (no subgroup check).
     #[staticmethod]
-    fn from_xy_bytes_unchecked_be(bytes: [u8; G2_UNCOMPRESSED_SIZE]) -> PyResult<G2Point> {
-        Self::from_xy_bytes_impl(bytes, Endian::Big, false)
+    fn from_xy_bytes_unchecked_be(data: [u8; G2_UNCOMPRESSED_SIZE]) -> PyResult<G2Point> {
+        Self::from_xy_bytes_impl(data, Endian::Big, false)
     }
 
     /// Deserialize from 192-byte uncompressed little-endian format (x.c0 || x.c1 || y.c0 || y.c1)
     /// with on-curve check only (no subgroup check).
     #[staticmethod]
-    fn from_xy_bytes_unchecked_le(bytes: [u8; G2_UNCOMPRESSED_SIZE]) -> PyResult<G2Point> {
-        Self::from_xy_bytes_impl(bytes, Endian::Little, false)
+    fn from_xy_bytes_unchecked_le(data: [u8; G2_UNCOMPRESSED_SIZE]) -> PyResult<G2Point> {
+        Self::from_xy_bytes_impl(data, Endian::Little, false)
     }
 
     /// Map a big-endian Fp2 element to a G2 point using SWU map with cofactor clearing.
@@ -371,8 +393,8 @@ impl G2Point {
         scalars: Vec<Scalar>,
     ) -> PyResult<G2Point> {
         py.detach(|| {
-            let points: Vec<_> = points.into_iter().map(|point| point.0).collect();
-            let scalars: Vec<_> = scalars.into_iter().map(|scalar| scalar.0).collect();
+            let points: Vec<_> = points.into_par_iter().map(|point| point.0).collect();
+            let scalars: Vec<_> = scalars.into_par_iter().map(|scalar| scalar.0).collect();
 
             // Convert the points to affine.
             // TODO: we could have a G2AffinePoint struct and then a G2ProjectivePoint
@@ -452,7 +474,7 @@ impl Scalar {
     #[new]
     fn new(integer: BigUint) -> PyResult<Self> {
         let fr = ark_bls12_381::Fr::from_str(&*integer.to_string())
-            .map_err(|_| exceptions::PyValueError::new_err("Value is greater than BLS_MODULUS"))?;
+            .map_err(|_| exceptions::PyValueError::new_err("failed to parse integer as a scalar field element"))?;
         Ok(Scalar(fr))
     }
 
@@ -477,7 +499,7 @@ impl Scalar {
         Scalar(-self.0)
     }
     fn __str__(&self) -> PyResult<String> {
-        return Ok(hex::encode(self.to_le_bytes()?));
+        Ok(hex::encode(self.to_le_bytes()?))
     }
     fn __richcmp__(&self, other: Scalar, op: pyclass::CompareOp) -> PyResult<bool> {
         match op {
@@ -491,17 +513,27 @@ impl Scalar {
     fn __int__(&self) -> BigUint {
         BigUint::from(self.0.into_bigint())
     }
+    fn __hash__(&self) -> PyResult<i64> {
+        let bytes = self.to_le_bytes()?;
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        Ok(hasher.finish() as i64)
+    }
+    fn __repr__(&self) -> String {
+        format!("Scalar({})", BigUint::from(self.0.into_bigint()))
+    }
 
     fn pow(&self, exp: Scalar) -> Scalar {
         Scalar(self.0.pow(exp.0.into_bigint()))
     }
     fn square(&self) -> Scalar {
-        use ark_ff::fields::Field;
         Scalar(self.0.square())
     }
-    fn inverse(&self) -> Scalar {
-        use ark_ff::fields::Field;
-        Scalar(self.0.inverse().unwrap_or_default())
+    fn inverse(&self) -> PyResult<Scalar> {
+        self.0
+            .inverse()
+            .map(Scalar)
+            .ok_or_else(|| exceptions::PyZeroDivisionError::new_err("Cannot invert zero"))
     }
     fn is_zero(&self) -> bool {
         self.0.is_zero()
@@ -519,8 +551,8 @@ impl Scalar {
         Ok(bytes)
     }
     #[staticmethod]
-    fn from_le_bytes(bytes: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
-        let scalar: ark_bls12_381::Fr = CanonicalDeserialize::deserialize_compressed(&bytes[..])
+    fn from_le_bytes(data: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
+        let scalar: ark_bls12_381::Fr = CanonicalDeserialize::deserialize_compressed(&data[..])
             .map_err(serialisation_error_to_py_err)?;
         Ok(Scalar(scalar))
     }
@@ -535,8 +567,8 @@ impl Scalar {
     /// Deserialize scalar from 32-byte big-endian.
     /// Reduces modulo the subgroup order.
     #[staticmethod]
-    fn from_be_bytes(bytes: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
-        Ok(Scalar(ark_bls12_381::Fr::from_be_bytes_mod_order(&bytes)))
+    fn from_be_bytes(data: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
+        Ok(Scalar(ark_bls12_381::Fr::from_be_bytes_mod_order(&data)))
     }
 }
 
@@ -561,11 +593,16 @@ impl GT {
     }
 
     #[staticmethod]
-    fn multi_pairing(py: Python, g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> GT {
+    fn multi_pairing(py: Python, g1s: Vec<G1Point>, g2s: Vec<G2Point>) -> PyResult<GT> {
+        if g1s.len() != g2s.len() {
+            return Err(exceptions::PyValueError::new_err(
+                "g1s and g2s must have the same length",
+            ));
+        }
         py.detach(|| {
             let g1_inner: Vec<G1Affine> = g1s.into_par_iter().map(|g1| g1.0.into()).collect();
             let g2_inner: Vec<G2Affine> = g2s.into_par_iter().map(|g2| g2.0.into()).collect();
-            GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0)
+            Ok(GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0))
         })
     }
     #[staticmethod]
@@ -623,6 +660,23 @@ impl GT {
                 "comparison operator not implemented".to_owned(),
             )),
         }
+    }
+    fn __hash__(&self) -> PyResult<i64> {
+        let mut bytes = Vec::new();
+        self.0
+            .serialize_compressed(&mut bytes)
+            .map_err(serialisation_error_to_py_err)?;
+        let mut hasher = DefaultHasher::new();
+        bytes.hash(&mut hasher);
+        Ok(hasher.finish() as i64)
+    }
+    fn __repr__(&self) -> PyResult<String> {
+        let mut bytes = Vec::new();
+        self.0
+            .serialize_compressed(&mut bytes)
+            .map_err(serialisation_error_to_py_err)?;
+        let hex = hex::encode(bytes);
+        Ok(format!("GT(0x{}...{})", &hex[..8], &hex[hex.len() - 8..]))
     }
 }
 
