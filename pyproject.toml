@@ -22,3 +22,4 @@ Repository = "https://github.com/crate-crypto/py_arkworks_bls12381"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+include = ["py.typed", "py_arkworks_bls12381.pyi"]
