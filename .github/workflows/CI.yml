@@ -34,6 +34,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+      - name: Create virtualenv
+        run: python -m venv .venv
       - name: Build and install
         uses: PyO3/maturin-action@v1
         with:
@@ -43,12 +45,14 @@ jobs:
           sccache: true
       - name: Run examples
         run: |
+          source .venv/bin/activate
           python examples/point.py
           python examples/scalar.py
           python examples/pairing.py
           python examples/eip2537.py
       - name: Check type stubs
         run: |
+          source .venv/bin/activate
           pip install mypy
           python -m mypy.stubtest py_arkworks_bls12381 --allowlist stubtest_allowlist.txt
 
