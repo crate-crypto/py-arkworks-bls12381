@@ -14,6 +14,34 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-22.04
+            target: x86_64
+          - runner: macos-latest
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Build and install
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          command: develop
+          args: --release
+          sccache: true
+      - name: Run examples
+        run: |
+          python examples/point.py
+          python examples/scalar.py
+          python examples/pairing.py
+          python examples/eip2537.py
+
   linux:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
@@ -252,7 +280,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
-    needs: [linux, musllinux, windows, macos, linux-freethreaded, windows-freethreaded, macos-freethreaded, sdist]
+    needs: [test, linux, musllinux, windows, macos, linux-freethreaded, windows-freethreaded, macos-freethreaded, sdist]
     permissions:
       id-token: write
       contents: write
