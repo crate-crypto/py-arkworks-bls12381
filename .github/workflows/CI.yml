@@ -9,6 +9,12 @@ on:
       - '*'
   pull_request:
   workflow_dispatch:
+    inputs:
+      do_release:
+        description: 'Publish to PyPI'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
