@@ -23,7 +23,7 @@ dynamic = ["version"]
 dev = ["pytest", "pytest-benchmark"]
 
 [project.urls]
-Repository = "https://github.com/crate-crypto/py_arkworks_bls12381"
+Repository = "https://github.com/crate-crypto/py-arkworks-bls12381"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
