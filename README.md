@@ -163,43 +163,23 @@ assert int(Scalar(42)) == 42
 
 ## Development
 
-First, activate the virtual environment:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/):
 
 ```
-python3 -m venv .env
-source .env/bin/activate
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Then, install `maturin` which is needed to build the project:
+Set up the development environment:
 
 ```
-pip install maturin
+uv venv
+uv pip install maturin
+uv pip install -e ".[dev]"
+uv run maturin develop
 ```
 
-Next, build the rust package and install it in your virtual environment:
+Run the tests:
 
 ```
-maturin develop
-```
-
-Finally, run a file in the examples folder:
-
-```
-python3 examples/point.py
-```
-
-## Benchmarks
-
-This is to be executed in the virtual environment above.
-
-First, install `py_ecc` which is used as a comparison:
-
-```
-pip install py_ecc
-```
-
-Then, run the benchmarks with this command:
-
-```
-python3 -m examples.benches.bench
+uv run pytest
 ```
