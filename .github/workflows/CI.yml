@@ -49,9 +49,7 @@ jobs:
       - name: Run benchmarks
         run: uv run pytest benchmarks/ -v
       - name: Check type stubs
-        run: |
-          uv pip install mypy
-          uv run python -m mypy.stubtest py_arkworks_bls12381 --allowlist stubtest_allowlist.txt
+        run: uv run stubtest py_arkworks_bls12381 --allowlist stubtest_allowlist.txt
 
   linux:
     runs-on: ${{ matrix.platform.runner }}
