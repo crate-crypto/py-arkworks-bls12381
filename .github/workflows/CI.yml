@@ -34,25 +34,24 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+      - uses: astral-sh/setup-uv@v7
       - name: Create virtualenv
-        run: python -m venv .venv
+        run: uv venv
       - name: Build and install
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
           command: develop
-          args: --release
+          args: --release --extras dev
           sccache: true
       - name: Run tests
-        run: |
-          source .venv/bin/activate
-          pip install pytest
-          pytest tests/ -v
+        run: uv run pytest tests/ -v
+      - name: Run benchmarks
+        run: uv run pytest benchmarks/ -v
       - name: Check type stubs
         run: |
-          source .venv/bin/activate
-          pip install mypy
-          python -m mypy.stubtest py_arkworks_bls12381 --allowlist stubtest_allowlist.txt
+          uv pip install mypy
+          uv run python -m mypy.stubtest py_arkworks_bls12381 --allowlist stubtest_allowlist.txt
 
   linux:
     runs-on: ${{ matrix.platform.runner }}
