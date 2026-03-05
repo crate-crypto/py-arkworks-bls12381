@@ -8,7 +8,7 @@ name = "py_arkworks_bls12381"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.27", features = ["num-bigint"] }
+pyo3 = { version = "0.28.2", features = ["num-bigint"] }
 ark-bls12-381 = "0.4.0"
 ark-serialize = "0.4.0"
 ark-ec = "0.4.0"

@@ -51,7 +51,7 @@ fn read_fp2(bytes: &[u8; 2 * FP_SIZE], endian: Endian) -> PyResult<Fq2> {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass]
+#[pyclass(from_py_object)]
 pub struct G1Point(G1Projective);
 
 #[pymethods]
@@ -254,7 +254,7 @@ impl G1Point {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass]
+#[pyclass(from_py_object)]
 pub struct G2Point(G2Projective);
 
 #[pymethods]
@@ -465,7 +465,7 @@ impl G2Point {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass]
+#[pyclass(from_py_object)]
 pub struct Scalar(ark_bls12_381::Fr);
 
 #[pymethods]
@@ -593,7 +593,7 @@ impl Scalar {
 }
 
 #[derive(Copy, Clone)]
-#[pyclass]
+#[pyclass(from_py_object)]
 pub struct GT(ark_bls12_381::Fq12);
 
 #[pymethods]
