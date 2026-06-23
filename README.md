@@ -96,6 +96,29 @@ g2 = G2Point.map_from_fp2_be(fp2_bytes)
 g2 = G2Point.map_from_fp2_le(fp2_bytes)
 ```
 
+## Hash to Curve
+
+Full [RFC 9380](https://www.rfc-editor.org/rfc/rfc9380) hash-to-curve (random-oracle
+suite `BLS12381G{1,2}_XMD:SHA-256_SSWU_RO_`): hashes an arbitrary message to a
+point. Internally this does `hash_to_field` (`expand_message_xmd` over SHA-256)
+→ map to curve → clear cofactor, so the result is always in the prime-order
+subgroup.
+
+```python
+from py_arkworks_bls12381 import G1Point, G2Point
+
+msg = b"some message"
+dst = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_"  # your domain separation tag
+
+# Hash to G2 (used by the Ethereum BLS signature scheme, pubkeys in G1)
+g2 = G2Point.hash_to_curve(msg, dst)
+assert g2.is_in_subgroup()
+
+# Hash to G1
+g1 = G1Point.hash_to_curve(msg, b"BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_")
+assert g1.is_in_subgroup()
+```
+
 ## Pairing
 
 ```python
