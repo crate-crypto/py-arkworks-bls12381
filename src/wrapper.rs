@@ -1,13 +1,16 @@
 use ark_bls12_381::{Fq, Fq2, G1Affine, G1Projective, G2Affine, G2Projective};
+use ark_ec::hashing::HashToCurve;
 use ark_ec::hashing::curve_maps::wb::WBMap;
-use ark_ec::hashing::map_to_curve_hasher::MapToCurve;
+use ark_ec::hashing::map_to_curve_hasher::{MapToCurve, MapToCurveBasedHasher};
 use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ec::{AffineRepr, Group, ScalarMul, VariableBaseMSM};
+use ark_ff::fields::field_hashers::DefaultFieldHasher;
 use ark_ff::{Field, One, PrimeField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use num_bigint::BigUint;
 use num_traits::identities::Zero;
-use pyo3::{exceptions, pyclass, pymethods, PyErr, PyResult, Python};
+use pyo3::{PyErr, PyResult, Python, exceptions, pyclass, pymethods};
+use sha2::Sha256;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
@@ -98,7 +101,11 @@ impl G1Point {
     }
     fn __repr__(&self) -> PyResult<String> {
         let hex = hex::encode(self.to_compressed_bytes()?);
-        Ok(format!("G1Point(0x{}...{})", &hex[..8], &hex[hex.len() - 8..]))
+        Ok(format!(
+            "G1Point(0x{}...{})",
+            &hex[..8],
+            &hex[hex.len() - 8..]
+        ))
     }
 
     fn is_in_subgroup(&self) -> bool {
@@ -178,6 +185,33 @@ impl G1Point {
         Self::map_from_fp_impl(fp_bytes, Endian::Little)
     }
 
+    /// Hash an arbitrary message to a G1 point following RFC 9380
+    /// (draft-irtf-cfrg-hash-to-curve), random-oracle suite
+    /// `BLS12381G1_XMD:SHA-256_SSWU_RO_`.
+    ///
+    /// `dst` is the domain separation tag. The returned point is guaranteed to
+    /// be on the curve and in the prime-order subgroup (the cofactor is
+    /// cleared internally).
+    #[staticmethod]
+    fn hash_to_curve(msg: Vec<u8>, dst: Vec<u8>) -> PyResult<G1Point> {
+        // `MapToCurveBasedHasher` performs the complete RFC 9380 flow:
+        //   hash_to_field (expand_message_xmd over SHA-256, security param 128)
+        //   -> map_to_curve (SSWU + isogeny, via WBMap)
+        //   -> clear_cofactor.
+        type Hasher = MapToCurveBasedHasher<
+            G1Projective,
+            DefaultFieldHasher<Sha256, 128>,
+            WBMap<ark_bls12_381::g1::Config>,
+        >;
+        let hasher = <Hasher as HashToCurve<G1Projective>>::new(&dst).map_err(|e| {
+            exceptions::PyValueError::new_err(format!("failed to create hasher: {e}"))
+        })?;
+        let point = hasher
+            .hash(&msg)
+            .map_err(|e| exceptions::PyValueError::new_err(format!("hash_to_curve failed: {e}")))?;
+        Ok(G1Point(point.into()))
+    }
+
     #[staticmethod]
     fn multiexp_unchecked(
         py: Python,
@@ -242,12 +276,11 @@ impl G1Point {
 
     fn map_from_fp_impl(fp_bytes: [u8; FP_SIZE], endian: Endian) -> PyResult<G1Point> {
         let fp = read_fp(&fp_bytes, endian)?;
-        let mapper = WBMap::<ark_bls12_381::g1::Config>::new().map_err(|e| {
-            exceptions::PyValueError::new_err(format!("failed to create map: {e}"))
-        })?;
-        let point = mapper.map_to_curve(fp).map_err(|e| {
-            exceptions::PyValueError::new_err(format!("map_to_curve failed: {e}"))
-        })?;
+        let mapper = WBMap::<ark_bls12_381::g1::Config>::new()
+            .map_err(|e| exceptions::PyValueError::new_err(format!("failed to create map: {e}")))?;
+        let point = mapper
+            .map_to_curve(fp)
+            .map_err(|e| exceptions::PyValueError::new_err(format!("map_to_curve failed: {e}")))?;
         let cleared = point.clear_cofactor();
         Ok(G1Point(cleared.into()))
     }
@@ -301,7 +334,11 @@ impl G2Point {
     }
     fn __repr__(&self) -> PyResult<String> {
         let hex = hex::encode(self.to_compressed_bytes()?);
-        Ok(format!("G2Point(0x{}...{})", &hex[..8], &hex[hex.len() - 8..]))
+        Ok(format!(
+            "G2Point(0x{}...{})",
+            &hex[..8],
+            &hex[hex.len() - 8..]
+        ))
     }
 
     fn is_in_subgroup(&self) -> bool {
@@ -385,6 +422,34 @@ impl G2Point {
         Self::map_from_fp2_impl(fp2_bytes, Endian::Little)
     }
 
+    /// Hash an arbitrary message to a G2 point following RFC 9380
+    /// (draft-irtf-cfrg-hash-to-curve), random-oracle suite
+    /// `BLS12381G2_XMD:SHA-256_SSWU_RO_`. This is the hash-to-curve used by the
+    /// Ethereum BLS signature scheme (minimal-pubkey-size).
+    ///
+    /// `dst` is the domain separation tag. The returned point is guaranteed to
+    /// be on the curve and in the prime-order subgroup (the cofactor is
+    /// cleared internally).
+    #[staticmethod]
+    fn hash_to_curve(msg: Vec<u8>, dst: Vec<u8>) -> PyResult<G2Point> {
+        // `MapToCurveBasedHasher` performs the complete RFC 9380 flow:
+        //   hash_to_field (expand_message_xmd over SHA-256, security param 128)
+        //   -> map_to_curve (SSWU + isogeny, via WBMap)
+        //   -> clear_cofactor.
+        type Hasher = MapToCurveBasedHasher<
+            G2Projective,
+            DefaultFieldHasher<Sha256, 128>,
+            WBMap<ark_bls12_381::g2::Config>,
+        >;
+        let hasher = <Hasher as HashToCurve<G2Projective>>::new(&dst).map_err(|e| {
+            exceptions::PyValueError::new_err(format!("failed to create hasher: {e}"))
+        })?;
+        let point = hasher
+            .hash(&msg)
+            .map_err(|e| exceptions::PyValueError::new_err(format!("hash_to_curve failed: {e}")))?;
+        Ok(G2Point(point.into()))
+    }
+
     #[staticmethod]
     fn multiexp_unchecked(
         py: Python,
@@ -453,12 +518,11 @@ impl G2Point {
 
     fn map_from_fp2_impl(fp2_bytes: [u8; 2 * FP_SIZE], endian: Endian) -> PyResult<G2Point> {
         let fp2 = read_fp2(&fp2_bytes, endian)?;
-        let mapper = WBMap::<ark_bls12_381::g2::Config>::new().map_err(|e| {
-            exceptions::PyValueError::new_err(format!("failed to create map: {e}"))
-        })?;
-        let point = mapper.map_to_curve(fp2).map_err(|e| {
-            exceptions::PyValueError::new_err(format!("map_to_curve failed: {e}"))
-        })?;
+        let mapper = WBMap::<ark_bls12_381::g2::Config>::new()
+            .map_err(|e| exceptions::PyValueError::new_err(format!("failed to create map: {e}")))?;
+        let point = mapper
+            .map_to_curve(fp2)
+            .map_err(|e| exceptions::PyValueError::new_err(format!("map_to_curve failed: {e}")))?;
         let cleared = point.clear_cofactor();
         Ok(G2Point(cleared.into()))
     }
@@ -472,8 +536,9 @@ pub struct Scalar(ark_bls12_381::Fr);
 impl Scalar {
     #[new]
     fn new(integer: BigUint) -> PyResult<Self> {
-        let fr = ark_bls12_381::Fr::from_str(&*integer.to_string())
-            .map_err(|_| exceptions::PyValueError::new_err("failed to parse integer as a scalar field element"))?;
+        let fr = ark_bls12_381::Fr::from_str(&*integer.to_string()).map_err(|_| {
+            exceptions::PyValueError::new_err("failed to parse integer as a scalar field element")
+        })?;
         Ok(Scalar(fr))
     }
 
@@ -569,9 +634,8 @@ impl Scalar {
     fn from_be_bytes(data: [u8; SCALAR_SIZE]) -> PyResult<Scalar> {
         let mut le_data = data;
         le_data.reverse();
-        let scalar: ark_bls12_381::Fr =
-            CanonicalDeserialize::deserialize_compressed(&le_data[..])
-                .map_err(serialisation_error_to_py_err)?;
+        let scalar: ark_bls12_381::Fr = CanonicalDeserialize::deserialize_compressed(&le_data[..])
+            .map_err(serialisation_error_to_py_err)?;
         Ok(Scalar(scalar))
     }
 
@@ -622,7 +686,10 @@ impl GT {
         py.detach(|| {
             let g1_inner: Vec<G1Affine> = g1s.into_iter().map(|g1| g1.0.into()).collect();
             let g2_inner: Vec<G2Affine> = g2s.into_iter().map(|g2| g2.0.into()).collect();
-            Ok(GT(ark_bls12_381::Bls12_381::multi_pairing(g1_inner, g2_inner).0))
+            Ok(GT(ark_bls12_381::Bls12_381::multi_pairing(
+                g1_inner, g2_inner,
+            )
+            .0))
         })
     }
     #[staticmethod]

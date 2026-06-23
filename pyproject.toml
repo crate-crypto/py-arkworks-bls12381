@@ -20,7 +20,7 @@ classifiers = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-benchmark", "mypy"]
+dev = ["pytest", "pytest-benchmark", "mypy", "py_ecc"]
 
 [project.urls]
 Repository = "https://github.com/ethereum/py-arkworks-bls12381"
