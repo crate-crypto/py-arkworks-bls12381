@@ -1,5 +1,5 @@
 mod wrapper;
-use wrapper::{G1Point, G2Point, Scalar, GT};
+use wrapper::{G1Point, G2Point, GT, Scalar};
 
 use pyo3::prelude::*;
 
