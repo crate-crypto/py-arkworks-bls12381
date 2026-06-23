@@ -13,6 +13,9 @@ ark-bls12-381 = "0.4.0"
 ark-serialize = "0.4.0"
 ark-ec = "0.4.0"
 ark-ff = "0.4.0"
+# Used by arkworks' RFC 9380 hash-to-curve (expand_message_xmd over SHA-256).
+# sha2 is only a dev-dependency of ark-ff, so we depend on it directly.
+sha2 = "0.10"
 hex = "0.4"
 num-traits = "0.2"
 num-bigint = "0.4"
